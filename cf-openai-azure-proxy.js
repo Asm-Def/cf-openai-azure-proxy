@@ -1,26 +1,31 @@
 
-// The name of your Azure OpenAI Resource.
-const resourceName=RESOURCE_NAME
+function getEnv(env) {
+  // The name of your Azure OpenAI Resource.
+  const resourceName=env.RESOURCE_NAME;
+  // The deployment name you chose when you deployed the model.
+  const mapper = {
+      'gpt-3.5-turbo': env.DEPLOY_NAME_GPT35,
+      'gpt-3.5-turbo-16k': env.DEPLOY_NAME_GPT35_16K,
+      'gpt-4': env.DEPLOY_NAME_GPT4,
+      'gpt-4-32k': env.DEPLOY_NAME_GPT4_32K,
+      'text-embedding-ada-002': env.DEPLOY_NAME_EMBEDDING
+  };
+  return { resourceName, mapper };
+}
 
-// The deployment name you chose when you deployed the model.
-const mapper = {
-    'gpt-3.5-turbo': DEPLOY_NAME_GPT35,
-    'gpt-3.5-turbo-16k': DEPLOY_NAME_GPT35_16K,
-    'gpt-4': DEPLOY_NAME_GPT4,
-    'gpt-4-32k': DEPLOY_NAME_GPT4_32K,
-    'text-embedding-ada-002': DEPLOY_NAME_EMBEDDING
-};
 
 const apiVersion="2023-08-01-preview"
 
-addEventListener("fetch", (event) => {
-  event.respondWith(handleRequest(event.request));
+addEventListener("fetch", (event, env, ctx) => {
+  event.respondWith(handleRequest(event.request, env, ctx));
 });
 
-async function handleRequest(request) {
+async function handleRequest(request, env, ctx) {
   if (request.method === 'OPTIONS') {
     return handleOPTIONS(request)
   }
+
+  const { resourceName, mapper } = getEnv(env);
 
   const url = new URL(request.url);
   if (url.pathname.startsWith("//")) {
@@ -31,7 +36,7 @@ async function handleRequest(request) {
   } else if (url.pathname === '/v1/completions') {
     var path="completions"
   } else if (url.pathname === '/v1/models') {
-    return handleModels(request)
+    return handleModels(request, mapper)
   } // from https://github.com/haibbo/cf-openai-azure-proxy/pull/33
   else if (url.pathname === '/v1/embeddings') {
     var path="embeddings"
@@ -141,7 +146,7 @@ async function stream(readable, writable) {
   await writer.close();
 }
 
-async function handleModels(request) {
+async function handleModels(request, mapper) {
   const data = {
     "object": "list",
     "data": []  
