@@ -1,3 +1,4 @@
+
 // The name of your Azure OpenAI Resource.
 const resourceName=RESOURCE_NAME
 
@@ -7,6 +8,7 @@ const mapper = {
     'gpt-3.5-turbo-16k': DEPLOY_NAME_GPT35_16K,
     'gpt-4': DEPLOY_NAME_GPT4,
     'gpt-4-32k': DEPLOY_NAME_GPT4_32K,
+    'text-embedding-ada-002': DEPLOY_NAME_EMBEDDING
 };
 
 const apiVersion="2023-08-01-preview"
@@ -30,6 +32,16 @@ async function handleRequest(request) {
     var path="completions"
   } else if (url.pathname === '/v1/models') {
     return handleModels(request)
+  } // from https://github.com/haibbo/cf-openai-azure-proxy/pull/33
+  else if (url.pathname === '/v1/embeddings') {
+    var path="embeddings"
+  } else if (url.pathname === '/v1/moderations') {
+    const json = JSON.stringify({"id": "modr-placeholder",
+      "model": "text-moderation-001",
+      "results": [{"flagged": false},]}, null, 2);
+    return new Response(json, {
+      headers: { 'Content-Type': 'application/json' },
+    });
   } else {
     return new Response('404 Not Found', { status: 404 })
   }
@@ -99,7 +111,7 @@ async function stream(readable, writable) {
   // const decoder = new TextDecoder();
   const encoder = new TextEncoder();
   const decoder = new TextDecoder();
-// let decodedValue = decoder.decode(value);
+  // let decodedValue = decoder.decode(value);
   const newline = "\n";
   const delimiter = "\n\n"
   const encodedNewline = encoder.encode(newline);
@@ -175,4 +187,3 @@ async function handleOPTIONS(request) {
       }
     })
 }
-
